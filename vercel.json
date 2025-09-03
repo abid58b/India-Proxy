@@ -1,20 +1,8 @@
 {
   "rewrites": [
-    { "source": "/proxy", "destination": "/api/proxy" }
-  ],
-  "headers": [
     {
-      "source": "/proxy",
-      "headers": [
-        {
-          "key": "Access-Control-Allow-Origin",
-          "value": "*"
-        },
-        {
-          "key": "Access-Control-Allow-Methods",
-          "value": "GET, OPTIONS"
-        }
-      ]
+      "source": "/:path*",
+      "destination": "/api/proxy"
     }
   ]
 }

@@ -1,51 +1,41 @@
 const fetch = require('node-fetch');
 
 module.exports = async (req, res) => {
-  const { url } = req.query;
+    // Hum target URL ko query parameter se lenge (e.g., ?url=https://example.com)
+    const targetUrl = req.query.url;
 
-  if (!url) {
-    return res.status(400).send('URL nahi di gayi. ?url= parameter use karein.');
-  }
-
-  // Validate Fancode URL
-  if (!url.includes('fancode.com')) {
-    return res.status(400).send('Sirf Fancode links allowed hain.');
-  }
-
-  try {
-    const response = await fetch(url, {
-      headers: {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': '*/*',
-        'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.fancode.com/',
-        'Origin': 'https://www.fancode.com',
-        'Sec-Fetch-Dest': 'empty',
-        'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'same-site',
-        'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache',
-        'Connection': 'keep-alive'
-      }
-    });
-
-    if (!response.ok) {
-      return res.status(response.status).send(`Error: ${response.status} - ${response.statusText}`);
+    if (!targetUrl) {
+        res.status(400).send('Error: "url" query parameter is missing.');
+        return;
     }
 
-    const contentType = response.headers.get('content-type') || 'application/vnd.apple.mpegurl';
-    const data = await response.text();
+    try {
+        // Target URL se data fetch karein
+        const response = await fetch(targetUrl, {
+            // Client se aane walay headers ko aagay pass karein
+            headers: {
+                ...req.headers,
+                host: new URL(targetUrl).host, // Host header ko aane wali request k hisaab se set karein
+            },
+            // Client se aane wala method (GET, POST, etc.) istemal karein
+            method: req.method,
+            // Agar body hai (e.g., POST request mein), to usay bhi pass karein
+            body: req.method !== 'GET' && req.method !== 'HEAD' ? req.body : undefined,
+        });
 
-    // Set proper headers
-    res.setHeader('Content-Type', contentType);
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
-    
-    res.status(200).send(data);
-  } catch (error) {
-    res.status(500).send('Error fetching Fancode stream: ' + error.message);
-  }
+        // Original response se headers lein aur apne response mein set karein
+        response.headers.forEach((value, name) => {
+            // 'content-encoding' header ko skip karein taake Vercel compression handle kar sakay
+            if (name.toLowerCase() !== 'content-encoding') {
+                res.setHeader(name, value);
+            }
+        });
+        
+        // Original status code aur data wapas client ko bhej dein
+        res.status(response.status).send(await response.buffer());
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send(`Server error: ${error.message}`);
+    }
 };
