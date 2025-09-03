@@ -1,0 +1,5 @@
+{
+  "rewrites": [
+    { "source": "/india-proxy", "destination": "/api/india-proxy" }
+  ]
+}
