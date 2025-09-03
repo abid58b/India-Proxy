@@ -7,6 +7,11 @@ module.exports = async (req, res) => {
     return res.status(400).send('URL nahi di gayi. ?url= parameter use karein.');
   }
 
+  // Validate Fancode URL
+  if (!url.includes('fancode.com')) {
+    return res.status(400).send('Sirf Fancode links allowed hain.');
+  }
+
   try {
     const response = await fetch(url, {
       headers: {
@@ -14,25 +19,26 @@ module.exports = async (req, res) => {
         'Accept': '*/*',
         'Accept-Language': 'en-IN,en;q=0.9,hi;q=0.8',
         'Accept-Encoding': 'gzip, deflate, br',
-        'Referer': 'https://www.google.com/',
-        'Origin': 'https://www.google.com',
+        'Referer': 'https://www.fancode.com/',
+        'Origin': 'https://www.fancode.com',
         'Sec-Fetch-Dest': 'empty',
         'Sec-Fetch-Mode': 'cors',
-        'Sec-Fetch-Site': 'cross-site',
+        'Sec-Fetch-Site': 'same-site',
         'Cache-Control': 'no-cache',
-        'Pragma': 'no-cache'
+        'Pragma': 'no-cache',
+        'Connection': 'keep-alive'
       }
     });
 
-    // Check if request was successful
     if (!response.ok) {
       return res.status(response.status).send(`Error: ${response.status} - ${response.statusText}`);
     }
 
+    const contentType = response.headers.get('content-type') || 'application/vnd.apple.mpegurl';
     const data = await response.text();
 
     // Set proper headers
-    res.setHeader('Content-Type', 'application/vnd.apple.mpegurl');
+    res.setHeader('Content-Type', contentType);
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS');
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
@@ -40,6 +46,6 @@ module.exports = async (req, res) => {
     
     res.status(200).send(data);
   } catch (error) {
-    res.status(500).send('Error fetching stream: ' + error.message);
+    res.status(500).send('Error fetching Fancode stream: ' + error.message);
   }
 };
